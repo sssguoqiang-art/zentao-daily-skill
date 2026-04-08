@@ -35,6 +35,10 @@ import requests
 _BASE_URL = "https://cd.baa360.cc:20088/index.php"
 _PROJECT  = "10"
 
+# 兼容别名（fetch / fetch_pool 等函数直接引用这两个名字）
+BASE_URL = _BASE_URL
+PROJECT  = _PROJECT
+
 # Claude Code 通过 --account / --password 传入，存于此处
 _CLI_ACCOUNT:  str = ""
 _CLI_PASSWORD: str = ""
