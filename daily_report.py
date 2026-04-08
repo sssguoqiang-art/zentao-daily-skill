@@ -29,21 +29,19 @@ from typing import Dict, List, Optional, Tuple
 import requests
 
 # ════════════════════════════════════════════════════════════════
-#  固定配置（地址和项目 ID 不需要输入）
+#  配置文件管理（账号密码不写在代码里）
 # ════════════════════════════════════════════════════════════════
 
-_BASE_URL = "https://cd.baa360.cc:20088/index.php"
-_PROJECT  = "10"
-
-# 兼容别名（fetch / fetch_pool 等函数直接引用这两个名字）
-BASE_URL = _BASE_URL
-PROJECT  = _PROJECT
-
-# Claude Code 通过 --account / --password 传入，存于此处
-_CLI_ACCOUNT:  str = ""
-_CLI_PASSWORD: str = ""
-
 CONFIG_PATH = Path.home() / ".config" / "zentao-daily" / "config.json"
+
+def load_config() -> dict:
+    """从配置文件读取连接参数，不存在则提示运行 setup。"""
+    if not CONFIG_PATH.exists():
+        print("❌ 未找到配置文件，请先运行：")
+        print("   python daily_report.py setup")
+        sys.exit(1)
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def run_setup():
@@ -75,28 +73,33 @@ def run_setup():
 #  运行时配置
 # ════════════════════════════════════════════════════════════════
 
+# 禅道地址和项目 ID 固定，无需配置
+BASE_URL = "https://cd.baa360.cc:20088/index.php"
+PROJECT  = "10"
+
+# --account / --password 传参时存入此处（由 main() 写入）
+_CLI_ACCOUNT:  str = ""
+_CLI_PASSWORD: str = ""
+
+
 def _get_conn():
-    """账号密码优先级：CLI 参数 > 环境变量 > 配置文件
-    禅道地址和项目 ID 使用内置默认值，无需配置。
-    """
+    """账号密码优先级：CLI 参数 > 环境变量 > 配置文件"""
     account  = _CLI_ACCOUNT  or os.environ.get("ZENTAO_ACCOUNT",  "")
     password = _CLI_PASSWORD or os.environ.get("ZENTAO_PASSWORD", "")
 
-    if not account or not password:
-        if CONFIG_PATH.exists():
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-            account  = account  or cfg.get("account",  "")
-            password = password or cfg.get("password", "")
+    if (not account or not password) and CONFIG_PATH.exists():
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        account  = account  or cfg.get("account",  "")
+        password = password or cfg.get("password", "")
 
     if not account or not password:
         print("❌ 未找到账号或密码，请通过以下任意方式提供：")
-        print("   1. 运行 python daily_report.py setup")
-        print("   2. 设置环境变量 ZENTAO_ACCOUNT / ZENTAO_PASSWORD")
-        print("   3. 传参 --account xxx --password xxx")
+        print("   1. 运行  python daily_report.py setup")
+        print("   2. 传参  python daily_report.py --account xxx --password xxx")
         sys.exit(1)
 
-    return _BASE_URL, account, password, _PROJECT
+    return BASE_URL, account, password, PROJECT
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1228,9 +1231,9 @@ def main():
         epilog="""
 示例：
   python daily_report.py setup                              # 首次配置账号密码
-  python daily_report.py --output json                      # 输出 JSON（供 Claude Code 使用）
-  python daily_report.py --account xxx --password xxx       # 直接传入账号密码（Claude Code 推荐）
-  python daily_report.py                                    # 生成 Markdown 报告（写入文件）
+  python daily_report.py --output json                      # 输出 JSON
+  python daily_report.py --account xxx --password xxx       # 直接传入账号密码
+  python daily_report.py                                    # 生成 Markdown 报告
         """,
     )
     parser.add_argument(
@@ -1243,10 +1246,10 @@ def main():
         "--output",
         choices=["json", "markdown"],
         default="markdown",
-        help="输出格式：json（打印到 stdout）或 markdown（写入文件，默认）",
+        help="输出格式：json 或 markdown（默认）",
     )
-    parser.add_argument("--account",  default="", help="禅道账号（优先级高于配置文件）")
-    parser.add_argument("--password", default="", help="禅道密码（优先级高于配置文件）")
+    parser.add_argument("--account",  default="", help="禅道账号")
+    parser.add_argument("--password", default="", help="禅道密码")
     args = parser.parse_args()
 
     _CLI_ACCOUNT  = args.account
