@@ -489,7 +489,7 @@ def calc_dept_stats(pools: List[dict], task_details: dict, version_end: str) -> 
     }
 
     for pool in pools:
-        dl = pool.get("deliveryDate", "") or ""
+        dl = pool.get("deadline", "") or pool.get("deliveryDate", "") or ""
         if not dl or dl == "0000-00-00" or dl > version_end:
             continue
 
@@ -560,7 +560,7 @@ def build_not_test_rows(pools: List[dict], task_details: dict, version_end: str)
     for pool in pools:
         if pool.get("taskStatus") not in STATUS_DEV:
             continue
-        dl = pool.get("deliveryDate", "") or ""
+        dl = pool.get("deadline", "") or pool.get("deliveryDate", "") or ""
         if not dl or dl == "0000-00-00" or dl > version_end:
             continue
 
@@ -653,7 +653,7 @@ def build_next_version_data(
             })
             continue
 
-        pool_dl = pool.get("deliveryDate")
+        pool_dl = pool.get("deadline") or pool.get("deliveryDate")
         dl_str  = str(pool_dl) if pool_dl is not None else ""
         if not dl_str or dl_str == "0000-00-00":
             in_v = pool.get("taskStatus", "") not in STATUS_DONE_POOL
