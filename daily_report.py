@@ -117,7 +117,7 @@ DEPT_KEY_MAP = {
     "web":   "Web组",
 }
 
-PHPGROUP_DEPT = {"44": "PHP1部", "46": "PHP1部", "47": "PHP2部"}
+PHPGROUP_DEPT = {"44": "PHP1组", "46": "PHP1组", "47": "PHP2组"}
 
 CATEGORY_CN = {
     "version":   "版本需求",
@@ -626,9 +626,9 @@ def build_next_version_data(
     version_end: str, php_member_map: Dict[str, str]
 ) -> Dict:
     DEPT_KEY_MAP_NXT = {
-        "art":   "美术部",
-        "cocos": "Cocos部",
-        "web":   "Web部",
+        "art":   "美术组",
+        "cocos": "Cocos组",
+        "web":   "Web组",
     }
     STATUS_DONE_POOL = {"done", "closed", "cancel"}
 
