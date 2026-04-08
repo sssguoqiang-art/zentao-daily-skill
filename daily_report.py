@@ -85,12 +85,15 @@ def run_setup():
 # ════════════════════════════════════════════════════════════════
 
 def _get_conn():
-    """延迟加载连接配置，仅在实际运行报告时调用。"""
+    """延迟加载连接配置，仅在实际运行报告时调用。
+    账号密码支持通过环境变量覆盖（优先级高于配置文件）：
+      ZENTAO_ACCOUNT / ZENTAO_PASSWORD
+    """
     cfg = load_config()
     return (
         cfg.get("base_url", ""),
-        cfg.get("account",  ""),
-        cfg.get("password", ""),
+        os.environ.get("ZENTAO_ACCOUNT") or cfg.get("account",  ""),
+        os.environ.get("ZENTAO_PASSWORD") or cfg.get("password", ""),
         cfg.get("project",  "10"),
     )
 

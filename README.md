@@ -19,31 +19,31 @@ pip install requests
 首次使用，运行交互式配置：
 
 ```bash
-python scripts/daily_report.py setup
+python daily_report.py setup
 ```
 
 按提示输入禅道地址、账号、密码、项目 ID 即可。配置保存在 `~/.config/zentao-daily/config.json`（权限 600）。
 
-也可以通过环境变量配置（优先级高于配置文件，适合 CI/多人共用场景）：
+账号密码也可以通过环境变量覆盖（优先级高于配置文件，适合 CI/多人共用场景）：
 
 ```bash
-export ZENTAO_URL="https://zentao.example.com:8088"
 export ZENTAO_ACCOUNT="your_account"
 export ZENTAO_PASSWORD="your_password"
-export ZENTAO_PROJECT="10"
 ```
+
+禅道地址和项目 ID 仍从配置文件读取。
 
 ## 使用
 
 ```bash
 # 生成 Markdown 日报（写入本地文件）
-python scripts/daily_report.py
+python daily_report.py
 
 # 输出结构化 JSON（供 Claude Code Skill 使用）
-python scripts/daily_report.py --output json
+python daily_report.py --output json
 
 # 重新配置连接信息
-python scripts/daily_report.py setup
+python daily_report.py setup
 ```
 
 ## Claude Code 集成
