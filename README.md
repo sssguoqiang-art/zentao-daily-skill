@@ -58,8 +58,8 @@ npx skills add https://github.com/sssguoqiang-art/zentao-daily-skill -g
 
 ```
 帮我生成今天的日报
-用老板视角给我一个简洁版本
-PHP2 部门今天的情况怎样
+PHP2组今天的情况怎样
+有几个线上Bug
 ```
 
 Claude Code 会自动调用 CLI 拉取禅道数据，并按照指定视角输出报告。

@@ -18,10 +18,7 @@ import re
 import sys
 import time
 import logging
-import smtplib
 from collections import Counter
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -106,25 +103,18 @@ def _get_conn():
 #  其他配置
 # ════════════════════════════════════════════════════════════════
 
-OUTPUT_DIR = os.path.expanduser(
-    "~/Library/Mobile Documents/com~apple~CloudDocs/Claude工作区/禅道数据抓取/每日汇总"
-)
-
-# Gmail 邮件通知配置（留空则不发送）
-GMAIL_USER   = os.environ.get("GMAIL_USER",   "")
-GMAIL_APPPWD = os.environ.get("GMAIL_APPPWD", "")
-GMAIL_TO     = os.environ.get("GMAIL_TO",     "")
+OUTPUT_DIR = os.path.expanduser("~/zentao-daily-reports")
 
 # ════════════════════════════════════════════════════════════════
 #  常量（不含账号密码，运行时从配置文件加载）
 # ════════════════════════════════════════════════════════════════
 
-REPORT_DEPTS = ["美术部", "PHP1部", "PHP2部", "Web部", "Cocos部"]
+REPORT_DEPTS = ["美术组", "PHP1组", "PHP2组", "Web组", "Cocos组"]
 
 DEPT_KEY_MAP = {
-    "art":   "美术部",
-    "cocos": "Cocos部",
-    "web":   "Web部",
+    "art":   "美术组",
+    "cocos": "Cocos组",
+    "web":   "Web组",
 }
 
 PHPGROUP_DEPT = {"44": "PHP1部", "46": "PHP1部", "47": "PHP2部"}
@@ -1074,62 +1064,6 @@ def build_markdown_report(
 
 
 # ════════════════════════════════════════════════════════════════
-#  Gmail 发送
-# ════════════════════════════════════════════════════════════════
-
-def send_gmail(report_title: str, md_content: str, filename: str):
-    if not GMAIL_USER or not GMAIL_APPPWD or not GMAIL_TO:
-        log.info("  ℹ️  Gmail 未配置，跳过发送。")
-        return
-
-    log.info("  📨 发送 Gmail 邮件…")
-
-    lines = md_content.splitlines()
-    html_lines = []
-    for line in lines[:60]:
-        line_esc = line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        if line_esc.startswith("# "):
-            html_lines.append(f'<h2 style="color:#1a73e8">{line_esc[2:]}</h2>')
-        elif line_esc.startswith("## "):
-            html_lines.append(f'<h3>{line_esc[3:]}</h3>')
-        elif line_esc.startswith("**") and line_esc.endswith("**"):
-            html_lines.append(f'<p><strong>{line_esc[2:-2]}</strong></p>')
-        elif line_esc.startswith("|"):
-            html_lines.append(f'<code style="font-size:12px">{line_esc}</code><br>')
-        elif line_esc.strip() == "---":
-            html_lines.append("<hr>")
-        elif line_esc.strip():
-            html_lines.append(f'<p style="margin:4px 0">{line_esc}</p>')
-
-    html = f"""
-<html><body style="font-family:sans-serif;color:#333;max-width:900px;margin:auto;font-size:14px">
-{"".join(html_lines)}
-<hr>
-<p style="color:#888;font-size:12px">完整报告已作为 MD 附件附上。</p>
-</body></html>
-"""
-
-    msg = MIMEMultipart("mixed")
-    msg["Subject"] = f"【日报】{report_title}"
-    msg["From"]    = GMAIL_USER
-    msg["To"]      = GMAIL_TO
-
-    msg.attach(MIMEText(html, "html", "utf-8"))
-
-    att = MIMEText(md_content, "plain", "utf-8")
-    att.add_header("Content-Disposition", "attachment", filename=filename)
-    msg.attach(att)
-
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(GMAIL_USER, GMAIL_APPPWD.replace(" ", ""))
-            smtp.sendmail(GMAIL_USER, [t.strip() for t in GMAIL_TO.split(",")], msg.as_bytes())
-        log.info("  ✅ Gmail 发送成功 → %s", GMAIL_TO)
-    except Exception as e:
-        log.error("  ❌ Gmail 发送失败：%s", e)
-
-
-# ════════════════════════════════════════════════════════════════
 #  主流程
 # ════════════════════════════════════════════════════════════════
 
@@ -1214,8 +1148,6 @@ def run(output_mode: str = "markdown"):
     log.info("  📄 报告 → %s", out_path)
     log.info("══════════════════════════════════════════════════════")
     log.info("")
-
-    send_gmail(title, report_md, out_path.name)
 
 
 # ════════════════════════════════════════════════════════════════
