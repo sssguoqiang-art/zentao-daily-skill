@@ -29,47 +29,34 @@ from typing import Dict, List, Optional, Tuple
 import requests
 
 # ════════════════════════════════════════════════════════════════
-#  配置文件管理（账号密码不写在代码里）
+#  固定配置（地址和项目 ID 不需要输入）
 # ════════════════════════════════════════════════════════════════
+
+_BASE_URL = "https://cd.baa360.cc:20088/index.php"
+_PROJECT  = "10"
+
+# Claude Code 通过 --account / --password 传入，存于此处
+_CLI_ACCOUNT:  str = ""
+_CLI_PASSWORD: str = ""
 
 CONFIG_PATH = Path.home() / ".config" / "zentao-daily" / "config.json"
 
-def load_config() -> dict:
-    """从配置文件读取连接参数，不存在则提示运行 setup。"""
-    if not CONFIG_PATH.exists():
-        print("❌ 未找到配置文件，请先运行：")
-        print("   python daily_report.py setup")
-        sys.exit(1)
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 
 def run_setup():
-    """交互式配置向导，将账号密码保存到本地配置文件。"""
+    """交互式配置向导，只保存账号密码到本地配置文件。"""
     print("═" * 50)
     print("  禅道日报 · 首次配置")
     print("═" * 50)
     print(f"配置将保存至：{CONFIG_PATH}")
     print()
 
-    base_url = input("禅道地址（如 https://zentao.example.com:8088）：").strip().rstrip("/")
-    if not base_url.endswith("/index.php"):
-        base_url = base_url + "/index.php"
-
     account  = input("登录账号：").strip()
     password = getpass.getpass("登录密码（输入不显示）：")
-    project  = input("项目 ID（默认 10，直接回车跳过）：").strip() or "10"
 
-    config = {
-        "base_url": base_url,
-        "account":  account,
-        "password": password,
-        "project":  project,
-    }
+    config = {"account": account, "password": password}
 
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
-    # 限制文件权限，仅当前用户可读
     CONFIG_PATH.chmod(0o600)
 
     print()
@@ -81,21 +68,31 @@ def run_setup():
 
 
 # ════════════════════════════════════════════════════════════════
-#  运行时配置（从文件加载，不硬编码）
+#  运行时配置
 # ════════════════════════════════════════════════════════════════
 
 def _get_conn():
-    """延迟加载连接配置，仅在实际运行报告时调用。
-    账号密码支持通过环境变量覆盖（优先级高于配置文件）：
-      ZENTAO_ACCOUNT / ZENTAO_PASSWORD
+    """账号密码优先级：CLI 参数 > 环境变量 > 配置文件
+    禅道地址和项目 ID 使用内置默认值，无需配置。
     """
-    cfg = load_config()
-    return (
-        cfg.get("base_url", ""),
-        os.environ.get("ZENTAO_ACCOUNT") or cfg.get("account",  ""),
-        os.environ.get("ZENTAO_PASSWORD") or cfg.get("password", ""),
-        cfg.get("project",  "10"),
-    )
+    account  = _CLI_ACCOUNT  or os.environ.get("ZENTAO_ACCOUNT",  "")
+    password = _CLI_PASSWORD or os.environ.get("ZENTAO_PASSWORD", "")
+
+    if not account or not password:
+        if CONFIG_PATH.exists():
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            account  = account  or cfg.get("account",  "")
+            password = password or cfg.get("password", "")
+
+    if not account or not password:
+        print("❌ 未找到账号或密码，请通过以下任意方式提供：")
+        print("   1. 运行 python daily_report.py setup")
+        print("   2. 设置环境变量 ZENTAO_ACCOUNT / ZENTAO_PASSWORD")
+        print("   3. 传参 --account xxx --password xxx")
+        sys.exit(1)
+
+    return _BASE_URL, account, password, _PROJECT
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1219,21 +1216,24 @@ def run(output_mode: str = "markdown"):
 # ════════════════════════════════════════════════════════════════
 
 def main():
+    global _CLI_ACCOUNT, _CLI_PASSWORD
+
     parser = argparse.ArgumentParser(
         description="平台项目每日日报生成工具",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例：
-  python daily_report.py setup            # 首次配置禅道连接（账号密码）
-  python daily_report.py --output json    # 输出 JSON（供 Claude Code Skill 使用）
-  python daily_report.py                  # 生成 Markdown 报告（写入文件）
+  python daily_report.py setup                              # 首次配置账号密码
+  python daily_report.py --output json                      # 输出 JSON（供 Claude Code 使用）
+  python daily_report.py --account xxx --password xxx       # 直接传入账号密码（Claude Code 推荐）
+  python daily_report.py                                    # 生成 Markdown 报告（写入文件）
         """,
     )
     parser.add_argument(
         "command",
         nargs="?",
         choices=["setup"],
-        help="setup：交互式配置禅道连接信息（首次使用必须运行）",
+        help="setup：交互式配置账号密码（首次使用）",
     )
     parser.add_argument(
         "--output",
@@ -1241,7 +1241,12 @@ def main():
         default="markdown",
         help="输出格式：json（打印到 stdout）或 markdown（写入文件，默认）",
     )
+    parser.add_argument("--account",  default="", help="禅道账号（优先级高于配置文件）")
+    parser.add_argument("--password", default="", help="禅道密码（优先级高于配置文件）")
     args = parser.parse_args()
+
+    _CLI_ACCOUNT  = args.account
+    _CLI_PASSWORD = args.password
 
     if args.command == "setup":
         run_setup()

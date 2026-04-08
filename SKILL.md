@@ -1,28 +1,38 @@
 ---
 name: zentao-daily-report
 description: 平台项目每日报告 - 从禅道拉取版本进度、延期情况、Bug状态，生成日报。触发词：日报、今日报告、版本进度、今天情况、帮我生成报告
-version: 1.0.0
+version: 1.1.0
 ---
 
 # 平台项目日报 Skill
 
 通过 `daily_report.py --output json` 从禅道拉取当日数据，由大模型理解分析后按指定视角输出报告。
 
-## 第一步：拉取数据
+## 第一步：获取账号密码
 
-用户触发日报请求时，**始终先执行以下命令获取原始数据**：
+用户触发日报请求时，若未在本次对话中提供账号密码，**先向用户索取**：
+
+> 请提供你的禅道账号和密码，我来帮你拉取数据。
+
+收到后执行以下命令（将 `{账号}` 和 `{密码}` 替换为用户提供的内容）：
 
 ```bash
-python ~/zentao-daily-skill/scripts/daily_report.py --output json
+python ~/zentao-daily-skill/daily_report.py --output json --account {账号} --password {密码}
 ```
 
+> 已完成 `setup` 配置的用户也可以不传账号密码，直接运行：
+> ```bash
+> python ~/zentao-daily-skill/daily_report.py --output json
+> ```
+
 命令执行成功后返回 JSON 数据，包含以下核心字段：
-- `current_version`：当前版本整体进度、各部门剩余任务/工时/进度
-- `current_version.delay_rows`：延期需求列表（含超期天数）
-- `current_version.not_test_rows`：未到测试但临近截止的需求
-- `current_version.test_focus_rows`：测试中存在未关闭 Bug 的需求
-- `current_version.online_bugs`：当前活跃线上 Bug
-- `next_version`：下一版本需求总览与各部门工时预估
+
+* `current_version`：当前版本整体进度、各部门剩余任务/工时/进度
+* `current_version.delay_rows`：延期需求列表（含超期天数）
+* `current_version.not_test_rows`：未到测试但临近截止的需求
+* `current_version.test_focus_rows`：测试中存在未关闭 Bug 的需求
+* `current_version.online_bugs`：当前活跃线上 Bug
+* `next_version`：下一版本需求总览与各部门工时预估
 
 ## 第二步：按视角输出
 
@@ -36,6 +46,7 @@ python ~/zentao-daily-skill/scripts/daily_report.py --output json
 
 关注点：版本整体是否健康、最核心的风险、线上问题。
 输出要点：
+
 1. 一句话版本健康结论（能否按时发布）
 2. 最严重的 2-3 个风险项（仅列延期最严重或 Bug 最多的）
 3. 线上 Bug 数量及最紧急截止日
@@ -48,6 +59,7 @@ python ~/zentao-daily-skill/scripts/daily_report.py --output json
 **触发词**：日报、今日报告、项目进度、帮我生成报告（无特定视角）
 
 输出要点：
+
 1. 版本名称与距发布天数
 2. 需求总览（总数/完成/测试/开发中）
 3. 各部门进度表（剩余任务 + 剩余工时 + 总进度%）
@@ -80,6 +92,7 @@ python ~/zentao-daily-skill/scripts/daily_report.py --output json
 ## 错误处理
 
 若脚本执行失败，告知用户检查：
-1. 禅道服务器是否可访问
-2. 是否已运行 `python scripts/daily_report.py setup` 完成配置
-3. 运行 `python scripts/daily_report.py` 查看详细错误日志
+
+1. 账号密码是否正确
+2. 禅道服务器是否可访问（`https://cd.baa360.cc:20088`）
+3. 运行 `python daily_report.py --account xxx --password xxx` 查看详细错误日志
